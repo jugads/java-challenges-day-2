@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Java Escape Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* VOICE: playful mission control for a robotics team; clear enough for first-time coders
+   IDEA: a vault with five padlocks; each correct door code springs one open
+   PICTURE: the row of five padlocks at the top, filling as the team escapes
+   COLOUR and TYPE: team navy and safety orange from the preseason decks; Space Grotesk, Inter, JetBrains Mono
+   LAYOUT: one calm column, locks on top, the current room as a large card, solved rooms below */
+:root{color-scheme:light dark;--bg:light-dark(#F4F2EC,#0E1720);--ink:light-dark(#1B2631,#EEF1F4);--soft:light-dark(#4A5560,#AEB9C3);--card:light-dark(#FFFDF8,#16232F);--line:light-dark(#DDD8CC,#26384A);--navy:#14202B;--orange:#F28A2E;--orange-ink:light-dark(#A44F0B,#F5A55A);--ok:light-dark(#1F7A4D,#6FD39B);--bad:light-dark(#B42318,#FF8A80)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,Arial,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:'Space Grotesk',Arial,sans-serif;line-height:1.05;text-wrap:balance;margin:0}
+.top{background:var(--navy);color:#F4F2EC;padding:clamp(24px,4vw,48px) max(5vw,16px) 32px}
+.wrap{max-width:980px;margin:0 auto}
+.top h1{font-size:clamp(34px,5vw,52px)}
+.sub{color:#B9C4CE;margin:8px 0 0;max-width:62ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:20px}
+.bar input{font:16px Inter,sans-serif;padding:10px 14px;border-radius:10px;border:1px solid #2E4458;background:#1F2F3E;color:#F4F2EC;width:220px}
+.clock{font:700 28px 'JetBrains Mono',monospace;color:var(--orange);margin-left:auto;white-space:nowrap}
+.locks{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(8px,2vw,24px);margin-top:28px}
+.lock{display:flex;flex-direction:column;align-items:center;gap:6px;color:#8FA0AF;font-size:14px;text-align:center}
+.lock svg{width:100%;max-width:110px;height:auto}
+.lock .shackle{transition:transform .5s cubic-bezier(.3,1.6,.5,1);transform-origin:70px 52px}
+.lock.open .shackle{transform:translate(0,-14px) rotate(-28deg)}
+.lock.open{color:var(--orange)}
+.lock.now{color:#F4F2EC;font-weight:600}
+main{padding:32px max(5vw,16px) 64px}
+.room{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:clamp(20px,3vw,36px);display:grid;gap:18px}
+.tag{font-weight:600;color:var(--orange-ink);font-size:15px}
+.room h2{font-size:clamp(28px,4vw,40px)}
+.mission{font-size:18px;max-width:68ch}
+pre{background:#0F1820;color:#E6EDF3;border-radius:12px;padding:18px 22px;font:15.5px/1.6 'JetBrains Mono',monospace;overflow-x:auto;margin:0}
+.codebox{position:relative}
+.codebox pre{padding-top:52px}
+.copy{position:absolute;top:10px;right:10px;min-height:36px;padding:0 14px;font-size:14px;background:#2A3B4C;color:#F4F2EC}
+.copy.done{background:var(--orange);color:#14202B}
+.howto{background:light-dark(#FBE3CC,#2A2218);border-radius:12px;padding:16px 20px}
+.howto h3{font-size:17px;margin-bottom:6px}
+.howto ol{margin:0;padding-left:22px}
+.howto li{margin:4px 0}
+kbd{font:600 14px 'JetBrains Mono',monospace;background:var(--card);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;white-space:nowrap}
+.setup{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 24px;margin-bottom:24px}
+.setup summary{font-family:'Space Grotesk',Arial,sans-serif;font-size:20px}
+.setup ol{margin:10px 0 4px;padding-left:22px}
+.setup li{margin:6px 0}
+.kw{color:#F5A55A}.str{color:#9AD39A}.cm{color:#7D8B97}
+details{border:1px dashed var(--line);border-radius:12px;padding:10px 16px}
+summary{cursor:pointer;font-weight:600;min-height:28px}
+details p{margin:8px 0 2px;color:var(--soft)}
+form{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+label{font-weight:600}
+.code-in{font:700 22px 'JetBrains Mono',monospace;width:180px;padding:10px 14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.code-in:focus,button:focus-visible,.bar input:focus{outline:3px solid var(--orange);outline-offset:2px}
+button{font:600 16px Inter,sans-serif;min-height:44px;padding:0 20px;border-radius:10px;border:0;background:var(--orange);color:#14202B;cursor:pointer}
+button.ghost{background:transparent;color:var(--soft);border:1px solid var(--line)}
+.msg{font-weight:600;min-height:1.5em;margin:0}
+.msg.bad{color:var(--bad)}.msg.ok{color:var(--ok)}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+.done{margin-top:28px;display:grid;gap:10px}
+.done h3{font-size:20px}
+.solved{display:flex;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.solved b{font-family:'JetBrains Mono',monospace;color:var(--orange-ink)}
+.escaped{background:var(--orange);color:#14202B;border-radius:18px;padding:clamp(24px,4vw,44px);display:grid;gap:12px}
+.escaped h2{font-size:clamp(40px,7vw,64px)}
+.escaped .big{font:700 clamp(28px,5vw,40px) 'JetBrains Mono',monospace}
+.escaped ul{margin:4px 0 0;padding-left:20px}
+.foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:40px;color:var(--soft);font-size:14px}
+.confirm{display:none;gap:8px;align-items:center}
+.confirm.on{display:flex}
+@media(max-width:600px){.clock{margin-left:0;width:100%}.lock span{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.lock .shackle{transition:none}.shake{animation:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<h1>Java Escape Room</h1>
+<p class="sub">Five locked rooms. Each program prints a door code — type it here to open the next room. Every room starts from the code you found in the room before.</p>
+<div class="bar">
+<input id="team" placeholder="Team name" aria-label="Team name" maxlength="30">
+<button id="start" type="button">Start the clock</button>
+<span class="clock" id="clock" aria-live="off">00:00</span>
+</div>
+<div class="locks" id="locks"></div>
+</div></header>
+<main><div class="wrap">
+<details class="setup" id="setup">
+<summary>First time? Set up VS Code (2 minutes)</summary>
+<ol>
+<li>Open <b>WPILib VS Code</b> (the desktop shortcut with the year in its name), not a regular VS Code.</li>
+<li>Click <b>File → Open Folder</b>, make a new folder called <b>escape-room</b>, and open it. If it asks whether you trust the folder, click <b>Yes</b>.</li>
+<li>Click <b>File → New File</b> and name it exactly <b>Escape.java</b>. The capital E matters.</li>
+<li>Paste or type the room’s code into that file and save with <kbd>Ctrl</kbd>+<kbd>S</kbd> (Mac: <kbd>⌘</kbd>+<kbd>S</kbd>).</li>
+<li>Click the small <b>Run</b> link that appears just above the line with <b>main</b>. The door code prints in the terminal at the bottom of the window.</li>
+<li>No Run link? Java support takes a minute to load the first time. Watch the bar at the bottom of the window, then try again.</li>
+</ol>
+</details>
+<div id="stage"></div>
+<div class="done" id="done"></div>
+<div class="foot">
+<span>Setup: open a folder in WPILib VS Code, create <b>Escape.java</b>, click <b>Run</b> above main.</span>
+<button class="ghost" id="reset" type="button">Reset for a new team</button>
+<span class="confirm" id="confirm">Erase this team’s progress? <button id="yes" type="button">Yes, reset</button><button class="ghost" id="no" type="button">Cancel</button></span>
+</div>
+</div></main>
+<script>
+{
+const INSIDE_MAIN=["Click Copy.","In Escape.java, select only the lines between the { after main(String[] args) and its matching } — keep those two braces and the class around them.","Delete the selected lines, then paste with Ctrl+V (Mac: ⌘+V) in their place.","Replace every ___ with a number or with your own code. Right-click → Format Document tidies the indents.","Save with Ctrl+S, then click Run above main."];
+const ROOMS=[
+{tag:"Room 1 · Fix the code",title:"This program has 3 bugs",
+mission:"Type this into Escape.java exactly as shown — bugs and all. Then fix the three bugs so it runs and prints the door code.",
+code:`<span class="kw">public class</span> Escape {
+    <span class="kw">public static void</span> main(String[] args) {
+        <span class="kw">int</span> a = 7
+        <span class="kw">int</span> b = 6;
+        system.out.println(<span class="str">"Door code: "</span> + (a * b + 12);
+    }
+}`,
+steps:["Open Escape.java (see “First time? Set up VS Code” above if you don’t have it yet).","Click Copy, click in the empty file, and paste with Ctrl+V (Mac: ⌘+V). Or type it — typing teaches more!","Save with Ctrl+S. Red squiggly lines show the bugs: hover over one to read the error.","Fix all three bugs, save again, then click Run above main."],
+hints:["Red squiggles in the editor point at the problem lines.","Every statement ends with a semicolon.","Java cares about capital letters. Count your parentheses."],h:8422},
+{tag:"Room 2 · Variables",title:"How far did the robot go?",
+mission:"Keep the class and main from Room 1, and replace the code inside main with this. The robot drives forward at speed for seconds, then backs up 20 meters. How far is it from the start line?",
+code:`<span class="kw">int</span> seconds = ___;   <span class="cm">// your Room 1 code</span>
+<span class="kw">int</span> speed = 3;       <span class="cm">// meters per second</span>
+<span class="kw">int</span> distance = ___; <span class="cm">// write the math</span>
+System.out.println(<span class="str">"Door code: "</span> + distance);`,
+steps:INSIDE_MAIN,
+hints:["In Java, * means multiply and - means subtract.","Distance forward = speed × seconds. Don’t forget the backing up!"],h:257288},
+{tag:"Room 3 · Decisions",title:"Two doors, two choices",
+mission:"Replace the code inside main. Door 1 is written for you. Write Door 2 yourself: if n is even, multiply it by 3; if it’s odd, multiply it by 2.",
+code:`<span class="kw">int</span> n = ___;  <span class="cm">// your Room 2 code</span>
+
+<span class="cm">// Door 1</span>
+<span class="kw">if</span> (n &gt; 100) {
+    n = n - 100;
+} <span class="kw">else</span> {
+    n = n + 100;
+}
+
+<span class="cm">// Door 2: write an if/else here</span>
+
+System.out.println(<span class="str">"Door code: "</span> + n);`,
+steps:INSIDE_MAIN,
+hints:["n % 2 gives the remainder after dividing by 2. Even numbers have remainder 0.","Compare with == (two equals signs). One = means “store a value”.","Copy the shape of Door 1 and change the parts inside."],h:257230},
+{tag:"Room 4 · Loops",title:"Add it all up",
+mission:"Replace the code inside main. Add up every whole number from 1 to limit (1 + 2 + 3 + … + limit) using a loop.",
+code:`<span class="kw">int</span> n = ___;        <span class="cm">// your Room 3 code</span>
+<span class="kw">int</span> limit = n / 6;
+<span class="kw">int</span> total = 0;
+
+<span class="cm">// write a for loop that adds every number</span>
+<span class="cm">// from 1 up to limit into total</span>
+
+System.out.println(<span class="str">"Door code: "</span> + total);`,
+steps:INSIDE_MAIN,
+hints:["A for loop looks like: for (int i = 1; i <= limit; i++) { … }","Inside the loop: total = total + i;","Hard mode: can you get the same answer without a loop?"],h:258217},
+{tag:"Room 5 · Methods",title:"The final lock",
+mission:"Replace the whole file with this. Finish the boost method so it returns x times 2, plus 4. Main calls it three times in a row.",
+code:`<span class="kw">public class</span> Escape {
+    <span class="kw">static int</span> boost(<span class="kw">int</span> x) {
+        <span class="cm">// return x times 2, plus 4</span>
+    }
+
+    <span class="kw">public static void</span> main(String[] args) {
+        <span class="kw">int</span> code = ___;  <span class="cm">// your Room 4 code</span>
+        <span class="kw">int</span> result = boost(boost(boost(code)));
+        System.out.println(<span class="str">"Door code: "</span> + result);
+    }
+}`,
+steps:["Click Copy.","In Escape.java, select everything with Ctrl+A (Mac: ⌘+A), then paste with Ctrl+V. This room replaces the whole file.","Replace ___ with your Room 4 code, and write the return line inside boost.","Save with Ctrl+S, then click Run above main."],
+hints:["A method sends its answer back with the word return.","return x * 2 + 4;","boost(boost(boost(code))) works from the inside out."],h:979960}];
+const $=id=>document.getElementById(id);
+const hash=s=>{let x=7;for(const c of s)x=(x*31+c.charCodeAt(0))%1000003;return x};
+const KEY="java-escape-room-v1";
+let S={team:"",start:0,solved:[],end:0};
+try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&Array.isArray(v.solved))S=Object.assign(S,v)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const fmt=ms=>{const t=Math.max(0,Math.floor(ms/1000));return String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0")};
+const lockSvg=`<svg viewBox="0 0 140 150" aria-hidden="true"><path class="shackle" d="M40 70V48a30 30 0 0 1 60 0v22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/><rect x="22" y="66" width="96" height="76" rx="14" fill="currentColor"/><rect x="22" y="66" width="96" height="14" rx="7" fill="#fff" opacity=".12"/><circle cx="70" cy="100" r="9" fill="#14202B"/><rect x="66" y="104" width="8" height="18" rx="4" fill="#14202B"/></svg>`;
+function drawLocks(){
+$("locks").innerHTML=ROOMS.map((r,i)=>{const open=S.solved.length>i,now=S.solved.length===i;return `<div class="lock${open?" open":""}${now?" now":""}">${lockSvg}<span>Room ${i+1}${open?" · "+S.solved[i]:""}</span></div>`}).join("");
+}
+function drawDone(){
+$("done").innerHTML=S.solved.length?`<h3>Opened doors</h3>`+S.solved.map((c,i)=>`<div class="solved"><span>${ROOMS[i].tag}</span><b>${c}</b></div>`).join(""):"";
+}
+function drawStage(){
+const i=S.solved.length;
+if(i>=ROOMS.length){
+const t=S.end&&S.start?fmt(S.end-S.start):"—";
+$("stage").innerHTML=`<section class="escaped"><h2>Escaped!</h2><p class="big">${t}</p><p><b>${S.team?S.team.replace(/[<>&]/g,""):"Your team"}</b> opened all five locks. Show this screen to a mentor.</p><h3>Bonus room: build your own</h3><ul><li>Write a puzzle whose answer is a number. Use at least one if or one loop.</li><li>Trade it with another team that has escaped, and solve theirs.</li><li>Hard mode: solve Room 4 again with no loop at all.</li></ul></section>`;
+return}
+const r=ROOMS[i];
+$("stage").innerHTML=`<section class="room" aria-labelledby="rt"><span class="tag">${r.tag}</span><h2 id="rt">${r.title}</h2><p class="mission">${r.mission}</p><div class="codebox"><button class="copy" id="cp" type="button">Copy code</button><pre><code id="code">${r.code}</code></pre></div><div class="howto"><h3>Put it into VS Code</h3><ol>${r.steps.map(s=>`<li>${s.replace(/</g,"&lt;")}</li>`).join("")}</ol></div><details><summary>Need a hint?</summary>${r.hints.map((h,k)=>`<p><b>Hint ${k+1}:</b> ${h.replace(/</g,"&lt;")}</p>`).join("")}</details><form id="f"><label for="ci">Door code</label><input class="code-in" id="ci" inputmode="numeric" autocomplete="off"><button type="submit">Unlock</button></form><p class="msg" id="m" role="status"></p></section>`;
+$("cp").addEventListener("click",async()=>{
+const b=$("cp"),text=$("code").textContent;
+let ok=false;
+try{await navigator.clipboard.writeText(text);ok=true}catch(e){
+try{const t=document.createElement("textarea");t.value=text;t.setAttribute("readonly","");t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();ok=document.execCommand("copy");t.remove()}catch(e2){}}
+if(ok){b.textContent="Copied!";b.classList.add("done")}
+else{const r=document.createRange();r.selectNodeContents($("code"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Press Ctrl+C to copy"}
+setTimeout(()=>{if($("cp")){$("cp").textContent="Copy code";$("cp").classList.remove("done")}},2500);
+});
+$("f").addEventListener("submit",e=>{
+e.preventDefault();
+const raw=$("ci").value.replace(/\D/g,"");
+if(!raw){$("m").className="msg bad";$("m").textContent="Type the number your program printed.";return}
+if(hash(raw)===r.h){
+if(!S.start)S.start=Date.now();
+S.solved.push(raw);if(S.solved.length===ROOMS.length)S.end=Date.now();save();
+drawLocks();drawDone();drawStage();
+const n=$("ci");if(n)n.focus();
+}else{
+$("m").className="msg bad";
+$("m").textContent=i===0?"Locked. Does your program run without errors?":"Locked. Check this room’s code — and the code you used from the last room.";
+const f=$("f");f.classList.remove("shake");void f.offsetWidth;f.classList.add("shake");
+}});
+}
+function tick(){$("clock").textContent=S.start?fmt((S.end||Date.now())-S.start):"00:00";$("start").style.display=S.start?"none":""}
+$("team").value=S.team;
+$("team").addEventListener("input",e=>{S.team=e.target.value;save()});
+$("start").addEventListener("click",()=>{if(!S.start){S.start=Date.now();save();tick()}});
+$("reset").addEventListener("click",()=>$("confirm").classList.add("on"));
+$("no").addEventListener("click",()=>$("confirm").classList.remove("on"));
+$("yes").addEventListener("click",()=>{S={team:"",start:0,solved:[],end:0};save();$("team").value="";$("confirm").classList.remove("on");drawLocks();drawDone();drawStage();tick()});
+if(!S.solved.length)$("setup").open=true;
+drawLocks();drawDone();drawStage();tick();setInterval(tick,1000);
+}
+</script>
+</body>
+</html>
